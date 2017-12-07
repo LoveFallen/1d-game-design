@@ -1,0 +1,229 @@
+module comparator (
+    // input clk,  // clock            //  0   1   2   3           // XXX  0  XXX  1  XXX  2  XXX
+    // input rst,  // reset            //  4   5   6   7           //  3       4       5       6
+    output out[24],                 //  8   9   10  11          // XXX  7  XXX  8  XXX  9  XXX
+    input array[16][4]              //  12  13  14  15          //  10      11      12      13
+  )
+  
+  {                                                            // XXX  14 XXX  15 XXX  16 XXX
+     alu alu1;
+     alu alu2;
+     alu alu3;
+     alu alu4;
+     sig tempOut1[8];
+     sig tempOut2[8];                                                 //  17      18      19      20
+                                                                 // XXX  21 XXX  22 XXX  23 X
+  always {
+         
+    ////////   out[23]  ///////////
+    alu1.a = array[14];
+    alu1.b = 1;
+    alu1.alufn = 6b000000;
+    tempOut1 = alu1.c;
+    
+    alu2.a = array[15];
+    alu2.b = tempOut1;
+    alu2.alufn = 6b110011;
+    tempOut2 = alu2.c;
+    
+    if (tempOut2[0] == 1){
+        out[23] = 1;
+    }
+    else{
+      out[23] = 0;
+    }
+     
+    ////////   out[22]  ///////////
+    alu3.a = array[14];
+    alu3.b = 1;
+    alu3.alufn = 6b000001;
+    tempOut1 = alu3.c;
+    
+    alu4.a = array[13];
+    alu4.b = tempOut1;
+    alu4.alufn = 6b110011;
+    tempOut2 = alu3.c;
+    if (array[13] == array[14] - 1){
+        out[22] = 1;
+    }
+    else{
+      out[22] = 0;
+    }
+  
+    ////////   out[21]  ///////////
+    if (array[12] == array[13] - 1){
+        out[21] = 1;
+    }
+    else{
+      out[21] = 0;
+    }
+    
+    ////////   out[20]  ///////////
+    if (array[11] == array[15] - 4){
+        out[20] = 1;
+    }
+    else{
+      out[20] = 0;
+    }
+    
+    ////////   out[19]  ///////////
+    if (array[10] == array[14] - 4){
+        out[19] = 1;
+    }
+    else{
+      out[19] = 0;
+    }
+  
+    ////////   out[18]  ///////////
+    if (array[9] == array[13] - 4){
+        out[18] = 1;
+    }
+    else{
+      out[18] = 0;
+    }
+    
+    ////////   out[17]  ///////////
+    if (array[8] == array[12] - 4){
+        out[17] = 1;
+    }
+    else{
+      out[17] = 0;
+    }
+    
+    ////////   out[16]  ///////////
+    if (array[10] == array[11] - 1){
+        out[16] = 1;
+    }
+    else{
+      out[16] = 0;
+    }    
+    
+    ////////   out[15]  ///////////
+    if (array[9] == array[10] - 1){
+        out[15] = 1;
+    }
+    else{
+      out[15] = 0;
+    }
+    
+    ////////   out[14]  ///////////
+    if (array[8] == array[9] - 1){
+        out[14] = 1;
+    }
+    else{
+      out[14] = 0;
+    }
+    
+    ////////   out[13]  ///////////
+    if (array[7] == array[11] - 4){
+        out[13] = 1;
+    }
+    else{
+      out[13] = 0;
+    }
+    
+    ////////   out[12]  ///////////
+    if (array[6] == array[10] - 4){
+        out[12] = 1;
+    }
+    else{
+      out[12] = 0;
+    }
+  
+    ////////   out[11]  ///////////
+    if (array[5] == array[9] - 4){
+        out[11] = 1;
+    }
+    else{
+      out[11] = 0;
+    }
+    
+    ////////   out[10]  ///////////
+    if (array[4] == array[8] - 4){
+        out[10] = 1;
+    }
+    else{
+      out[10] = 0;
+    }
+    
+    ////////   out[9]  ///////////
+    if (array[6] == array[7] - 1){
+        out[9] = 1;
+    }
+    else{
+      out[9] = 0;
+    }    
+    
+    ////////   out[8]  ///////////
+    if (array[5] == array[6] - 1){
+        out[8] = 1;
+    }
+    else{
+      out[8] = 0;
+    }
+    
+    ////////   out[7]  ///////////
+    if (array[4] == array[5] - 1){
+        out[7] = 1;
+    }
+    else{
+      out[7] = 0;
+    }
+    
+    ////////   out[6]  ///////////
+    if (array[3] == array[7] - 4){
+        out[6] = 1;
+    }
+    else{
+      out[6] = 0;
+    }
+    
+    ////////   out[5]  ///////////
+    if (array[2] == array[6] - 4){
+        out[5] = 1;
+    }
+    else{
+      out[5] = 0;
+    }
+  
+    ////////   out[4]  ///////////
+    if (array[1] == array[5] - 4){
+        out[4] = 1;
+    }
+    else{
+      out[4] = 0;
+    }
+    
+    ////////   out[3]  ///////////
+    if (array[0] == array[4] - 4){
+        out[3] = 1;
+    }
+    else{
+      out[3] = 0;
+    }
+    
+    ////////   out[2]  ///////////
+    if (array[2] == array[3] - 1){
+        out[2] = 1;
+    }
+    else{
+      out[2] = 0;
+    }
+    
+    ////////   out[1]  ///////////
+    if (array[1] == array[2] - 1){
+        out[1] = 1;
+    }
+    else{
+      out[1] = 0;
+    }
+    
+    ////////   out[0]  ///////////
+    if (array[0] == array[1] - 1){
+        out[0] = 1;
+    }
+    else{
+      out[0] = 0;
+    }
+  }
+}

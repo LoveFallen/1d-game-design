@@ -1,0 +1,57 @@
+module alu (
+  input a[8], // 8 bits of A
+  input b[8], // 8 bits of B
+  // input alufn0, // alufn[0]
+  input alufn[6],
+  output aluop[6],
+  output c[8], // 8 bits of C
+  output x[8],
+  output y[8]
+) {
+  sig shift[3];
+
+always { //adder alufn[0]
+  aluop=alufn;
+  x=a;
+  y=b;
+  case (alufn){
+      6b000000: 
+        c = a + b;
+      6b000001: 
+        c = a - b;    
+      6b000010:
+        c = a * b;        
+      6b000011:
+        c = a / b;
+      6b011000:
+        c = a & b;
+      6b011110:
+        c = a | b;
+      6b010110:
+        c = a ^ b;
+      6b011010:
+        c = a;
+      6b100000:
+        shift = b[2:0];
+        c = a << shift;
+      6b100001:
+        shift = b[2:0];
+        c = a >> shift;
+      6b100011:
+        shift = b[2:0];
+        c = $signed(a) >>> shift;
+      6b110011:
+        c[0] = (a == b);
+        c[7:1] = 7b0;
+      6b110101: 
+        c[0] = (a < b);
+        c[7:1] = 7b0;
+      6b110111: 
+        c[0] = (a <= b);
+        c[7:1] = 7b0;
+      default:
+        c = 8b0;
+    }
+
+}
+}

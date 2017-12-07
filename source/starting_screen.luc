@@ -1,0 +1,86 @@
+module starting_screen (
+    output place[16][32]
+  ) {
+
+  always {
+        place[2][2] = 1;
+        place[2][3] = 1;
+        place[2][4] = 1;
+        place[2][5] = 1;
+        place[3][6] = 1;
+        place[3][2] = 1;
+        place[4][2] = 1;
+        place[4][7] = 1;
+        place[5][6] = 1;
+        place[5][2] = 1;
+        place[6][2] = 1;
+        place[6][3] = 1;
+        place[6][4] = 1;
+        place[6][5] = 1;
+        place[15][2] = 1;
+        place[15][6] = 1;
+        place[8][2] = 1;
+        place[8][7] = 1;
+        place[9][2] = 1;
+        place[9][6] = 1;
+        place[10][2] = 1;
+        place[10][3] = 1;
+        place[10][4] = 1;
+        place[10][5] = 1;
+    
+        place[6][9] = 1;
+        place[6][10] = 1;
+        place[6][11] = 1;
+        place[6][12] = 1;
+        place[15][9] = 1;
+        place[8][9] = 1;
+        place[8][10] = 1;
+        place[8][11] = 1;
+        place[8][12] = 1;
+        place[9][9] = 1;
+        place[10][9] = 1;
+        place[10][10] = 1;
+        place[10][11] = 1;
+        place[10][12] = 1;
+    
+        place[6][15] = 1;
+        place[6][16] = 1;
+        place[6][17] = 1;
+        place[15][14] = 1;
+        place[8][14] = 1;
+        place[8][16] = 1;
+        place[8][17] = 1;
+        place[9][14] = 1;
+        place[9][17] = 1;
+        place[10][15] = 1;
+        place[10][16] = 1;
+    
+        place[6][19] = 1;
+        place[6][20] = 1;
+        place[6][21] = 1;
+        place[6][22] = 1;
+        place[6][23] = 1;
+        place[15][21] = 1;
+        place[8][21] = 1;
+        place[9][21] = 1;
+        place[10][19] = 1;
+        place[10][20] = 1;
+        place[10][21] = 1;
+        place[10][22] = 1;
+        place[10][23] = 1;
+    
+        place[6][25] = 1;
+        place[6][29] = 1;
+        place[15][25] = 1;
+        place[15][26] = 1;
+        place[15][29] = 1;
+        place[8][25] = 1;
+        place[8][27] = 1;
+        place[8][29] = 1;
+        place[9][25] = 1;
+        place[9][28] = 1;
+        place[9][29] = 1;
+        place[10][25] = 1;
+        place[10][29] = 1;
+  }
+}

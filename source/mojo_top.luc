@@ -1,0 +1,698 @@
+module mojo_top(
+ input clk, // 50MHz clock
+ input rst_n, // reset button (active low)
+ output led[8], // 8 user controllable LEDs
+ input ledout,
+ input cclk, // configuration clock, AVR ready when high
+ output spi_miso, // AVR SPI MISO
+ input spi_ss, // AVR SPI Slave Select
+ input spi_mosi, // AVR SPI MOSI
+ input spi_sck, // AVR SPI Clock
+ output spi_channel[4], // AVR general purpose pins (used by default to select ADC channel)
+ input avr_tx, // AVR TX (FPGA RX)
+ output avr_rx, // AVR RX (FPGA TX)
+ input avr_rx_busy, // AVR RX buffer full
+ input buttonU,
+ input buttonD,
+ input buttonL,
+ input buttonR,
+ input buttonY,
+ input buttonN,
+ output a,
+ output b,
+ output c,
+ output g_01,
+ output g_02,
+ output b_01,
+ output b_02,
+ output r_01,
+ output r_02,
+ output led_clk,
+ output oe,
+ output lat
+
+) {
+
+ sig rst; // reset signal
+ dff arrayr[16][32](.clk(clk));
+ dff arrayg[16][32](.clk(clk));
+ dff arrayb[16][32](.clk(clk));
+ dff stage[3](.clk(clk), .rst(rst), #INIT(1));
+ dff number[16][4](.clk(clk));
+ dff selected[4](.clk(clk), .rst(rst), #INIT(0));
+ dff score[6](.clk(clk), .rst(rst), #INIT(0));
+ dff pointer[4](.clk(clk), .rst(rst), #INIT(0));
+ dff counterQ[25](.clk(clk), .rst(rst), #INIT(0));
+ dff lightUp[16](.clk(clk), .rst(rst), #INIT(16hFFFF));
+ dff lightDown[16](.clk(clk), .rst(rst), #INIT(0));
+ sig temp;
+ sig up;
+ sig down;
+ sig left;
+ sig right;
+ sig yes;
+ sig no;
+ var i;
+ var j;
+ var l;
+
+
+ starting_screen start;
+ right_display right_dis;
+ comparator test;
+ .clk(clk) {
+  // The reset conditioner is used to synchronize the reset signal to the FPGA
+  // clock. This ensures the entire FPGA comes out of reset at the same time.
+  pushB buttonPush(.rst(rst));
+  reset_conditioner reset_cond;
+  .rst(rst) {
+   fsm state(#INIT(START)) = {
+   START,
+   INITIALIZE,
+   STEP1,
+   STEP2,
+   SWAP,
+   CHECK,
+   FINISH,
+   END
+  };
+   display oka;
+   initialize init;
+   switcher switcher;      
+  }
+ }
+
+ always {
+
+  reset_cond.in = ~rst_n; // input raw inverted reset signal
+  rst = reset_cond.out; // conditioned reset
+  init.stage = stage.q;
+  switcher.numberArray = number.q;
+  switcher.location1 = selected.q;
+  switcher.location2 = pointer.q;
+  test.array = number.q;
+
+  buttonPush.buttonU = buttonU;
+  buttonPush.buttonD = buttonD;
+  buttonPush.buttonL = buttonL;
+  buttonPush.buttonR = buttonR;
+  buttonPush.buttonY = buttonY;
+  buttonPush.buttonN = buttonN;
+
+  up = buttonPush.up;
+  down = buttonPush.down;
+  left = buttonPush.left;
+  right = buttonPush.right;
+  yes = buttonPush.yes;
+  no = buttonPush.no;
+  right_dis.level = 0;
+  init.stage = stage.q;
+
+  case (state.q) {
+        
+   state.START:
+     arrayb.d = start.place;
+     arrayg.d = start.place;
+     arrayr.d = start.place;
+     if (up == 1 || down == 1 || left == 1 || yes == 1 || no == 1 || right == 1) {
+      state.d = state.INITIALIZE;
+     } else {
+      state.d = state.q;
+     }
+
+   state.INITIALIZE:
+    for (l = 0; l < 16; l++) {
+     arrayb.d[l] = 32h00000000;
+     arrayg.d[l] = 32h00000000;
+     arrayr.d[l] = 32h00000000;
+    }
+     right_dis.level = stage.q;
+     number.d = init.array;
+     state.d = state.STEP1;
+
+   state.STEP1:
+    right_dis.level = stage.q;
+    arrayb.d = right_dis.out;
+    arrayg.d = right_dis.out;
+    arrayr.d = right_dis.out;
+    if (counterQ.q >= 24b100000000000000000000000) {
+     lightUp.d[pointer.q] = 0;
+    } else {
+     lightUp.d[pointer.q] = 1;
+    }
+   if (up == 1 && pointer.q >= 4) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q - 4;
+   }
+   if (left == 1 && pointer.q != 4b0000 && pointer.q != 4b0100 && pointer.q != 4b1000 && pointer.q != 4b1100) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q - 1;
+   }
+   if (right == 1 && pointer.q != 4b0011 && pointer.q != 4b0111 && pointer.q != 4b1011 && pointer.q != 4b1111) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q + 1;
+   }
+   if (down == 1 && pointer.q < 12) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q + 4;
+   }
+
+   counterQ.d = counterQ.q + 1;
+
+
+   if (yes == 1) {
+    selected.d = pointer.q;
+    lightDown.d[pointer.q] = 1;
+    lightUp.d[pointer.q] = 0;
+    state.d = state.STEP2;
+   }
+
+   test.array = number.q;
+   //Output 0....
+   arrayg.d[0][3] = test.out[0];
+   arrayg.d[0][4] = test.out[0];
+   arrayg.d[1][3] = test.out[0];
+   arrayg.d[1][4] = test.out[0];
+
+   //Output 1....
+   arrayg.d[0][7] = test.out[1];
+   arrayg.d[1][7] = test.out[1];
+   arrayg.d[0][8] = test.out[1];
+   arrayg.d[1][8] = test.out[1];
+   //Output 2....
+   arrayg.d[0][11] = test.out[2];
+   arrayg.d[1][11] = test.out[2];
+   arrayg.d[0][12] = test.out[2];
+   arrayg.d[1][12] = test.out[2];
+   //Output 3....
+   arrayg.d[2][1] = test.out[3];
+   arrayg.d[3][1] = test.out[3];
+   arrayg.d[2][2] = test.out[3];
+   arrayg.d[3][2] = test.out[3];
+   //Output 4....
+   arrayg.d[2][5] = test.out[4];
+   arrayg.d[3][5] = test.out[4];
+   arrayg.d[2][6] = test.out[4];
+   arrayg.d[3][6] = test.out[4];
+   //Output 5....
+   arrayg.d[2][9] = test.out[5];
+   arrayg.d[3][9] = test.out[5];
+   arrayg.d[2][10] = test.out[5];
+   arrayg.d[3][10] = test.out[5];
+   //Output 6....
+   arrayg.d[2][13] = test.out[6];
+   arrayg.d[3][13] = test.out[6];
+   arrayg.d[2][14] = test.out[6];
+   arrayg.d[3][14] = test.out[6];
+   //Output 7....
+   arrayg.d[4][3] = test.out[7];
+   arrayg.d[5][3] = test.out[7];
+   arrayg.d[4][4] = test.out[7];
+   arrayg.d[5][4] = test.out[7];
+   //Output 8....
+   arrayg.d[4][7] = test.out[8];
+   arrayg.d[5][7] = test.out[8];
+   arrayg.d[4][8] = test.out[8];
+   arrayg.d[5][8] = test.out[8];
+   //Output 9....
+   arrayg.d[4][11] = test.out[9];
+   arrayg.d[5][11] = test.out[9];
+   arrayg.d[4][12] = test.out[9];
+   arrayg.d[5][12] = test.out[9];
+   //Output 10....
+   arrayg.d[6][1] = test.out[10];
+   arrayg.d[6][2] = test.out[10];
+   arrayg.d[15][1] = test.out[10];
+   arrayg.d[15][2] = test.out[10];
+   //Output 11....
+   arrayg.d[6][5] = test.out[11];
+   arrayg.d[6][6] = test.out[11];
+   arrayg.d[15][5] = test.out[11];
+   arrayg.d[15][6] = test.out[11];
+   //Output 12....
+   arrayg.d[6][9] = test.out[12];
+   arrayg.d[6][10] = test.out[12];
+   arrayg.d[15][9] = test.out[12];
+   arrayg.d[15][10] = test.out[12];
+   //Output 13....
+   arrayg.d[6][13] = test.out[13];
+   arrayg.d[6][14] = test.out[13];
+   arrayg.d[15][13] = test.out[13];
+   arrayg.d[15][14] = test.out[13];
+   //Output 14....
+   arrayg.d[8][3] = test.out[14];
+   arrayg.d[9][3] = test.out[14];
+   arrayg.d[8][4] = test.out[14];
+   arrayg.d[9][4] = test.out[14];
+   //Output 15....
+   arrayg.d[8][7] = test.out[15];
+   arrayg.d[9][7] = test.out[15];
+   arrayg.d[8][8] = test.out[15];
+   arrayg.d[9][8] = test.out[15];
+   //Output 16....
+   arrayg.d[8][11] = test.out[16];
+   arrayg.d[9][11] = test.out[16];
+   arrayg.d[8][12] = test.out[16];
+   arrayg.d[9][12] = test.out[16];
+   //Output 17....
+   arrayg.d[10][1] = test.out[17];
+   arrayg.d[11][1] = test.out[17];
+   arrayg.d[10][2] = test.out[17];
+   arrayg.d[11][2] = test.out[17];
+   //Output 18....
+   arrayg.d[10][5] = test.out[18];
+   arrayg.d[11][5] = test.out[18];
+   arrayg.d[10][6] = test.out[18];
+   arrayg.d[11][6] = test.out[18];
+   //Output 19....
+   arrayg.d[10][9] = test.out[19];
+   arrayg.d[11][9] = test.out[19];
+   arrayg.d[10][10] = test.out[19];
+   arrayg.d[11][10] = test.out[19];
+   //Output 20....
+   arrayg.d[10][13] = test.out[20];
+   arrayg.d[11][13] = test.out[20];
+   arrayg.d[10][14] = test.out[20];
+   arrayg.d[11][14] = test.out[20];
+   //Output 21....
+   arrayg.d[12][3] = test.out[21];
+   arrayg.d[13][3] = test.out[21];
+   arrayg.d[12][4] = test.out[21];
+   arrayg.d[13][4] = test.out[21];
+   //Output 22....
+   arrayg.d[12][7] = test.out[22];
+   arrayg.d[13][7] = test.out[22];
+   arrayg.d[12][8] = test.out[22];
+   arrayg.d[13][8] = test.out[22];
+   //Output 23....
+   arrayg.d[12][11] = test.out[22];
+   arrayg.d[13][11] = test.out[22];
+   arrayg.d[12][12] = test.out[22];
+   arrayg.d[13][12] = test.out[22];
+
+
+   for (i = 0; i < 16; i++) {
+    arrayr.d[7][i] = 1;
+    arrayg.d[7][i] = 1;
+    arrayr.d[14][i] = 1;
+    arrayg.d[14][i] = 1;
+
+    arrayr.d[i][0] = 1;
+    arrayg.d[i][0] = 1;
+
+    arrayr.d[i][15] = 1;
+    arrayg.d[i][15] = 1;
+   }
+
+   for (j = 0; j < 2; j++) {
+    arrayb.d[0][1 + j] = lightUp.q[0];
+    arrayb.d[0][5 + j] = lightUp.q[1];
+    arrayb.d[0][9 + j] = lightUp.q[2];
+    arrayb.d[0][13 + j] = lightUp.q[3];
+    arrayb.d[1][1 + j] = lightUp.q[0];
+    arrayb.d[1][5 + j] = lightUp.q[1];
+    arrayb.d[1][9 + j] = lightUp.q[2];
+    arrayb.d[1][13 + j] = lightUp.q[3];
+
+    arrayb.d[4][1 + j] = lightUp.q[4];
+    arrayb.d[4][5 + j] = lightUp.q[5];
+    arrayb.d[4][9 + j] = lightUp.q[6];
+    arrayb.d[4][13 + j] = lightUp.q[7];
+    arrayb.d[5][1 + j] = lightUp.q[4];
+    arrayb.d[5][5 + j] = lightUp.q[5];
+    arrayb.d[5][9 + j] = lightUp.q[6];
+    arrayb.d[5][13 + j] = lightUp.q[7];
+
+    arrayb.d[8][1 + j] = lightUp.q[8];
+    arrayb.d[8][5 + j] = lightUp.q[9];
+    arrayb.d[8][9 + j] = lightUp.q[10];
+    arrayb.d[8][13 + j] = lightUp.q[11];
+    arrayb.d[9][1 + j] = lightUp.q[8];
+    arrayb.d[9][5 + j] = lightUp.q[9];
+    arrayb.d[9][9 + j] = lightUp.q[10];
+    arrayb.d[9][13 + j] = lightUp.q[11];
+
+    arrayb.d[12][1 + j] = lightUp.q[12];
+    arrayb.d[12][5 + j] = lightUp.q[13];
+    arrayb.d[12][9 + j] = lightUp.q[14];
+    arrayb.d[12][13 + j] = lightUp.q[15];
+    arrayb.d[13][1 + j] = lightUp.q[12];
+    arrayb.d[13][5 + j] = lightUp.q[13];
+    arrayb.d[13][9 + j] = lightUp.q[14];
+    arrayb.d[13][13 + j] = lightUp.q[15];
+
+    arrayr.d[0][1 + j] = lightDown.q[0];
+    arrayr.d[0][5 + j] = lightDown.q[1];
+    arrayr.d[0][9 + j] = lightDown.q[2];
+    arrayr.d[0][13 + j] = lightDown.q[3];
+    arrayr.d[1][1 + j] = lightDown.q[0];
+    arrayr.d[1][5 + j] = lightDown.q[1];
+    arrayr.d[1][9 + j] = lightDown.q[2];
+    arrayr.d[1][13 + j] = lightDown.q[3];
+
+    arrayr.d[4][1 + j] = lightDown.q[4];
+    arrayr.d[4][5 + j] = lightDown.q[5];
+    arrayr.d[4][9 + j] = lightDown.q[6];
+    arrayr.d[4][13 + j] = lightDown.q[7];
+    arrayr.d[5][1 + j] = lightDown.q[4];
+    arrayr.d[5][5 + j] = lightDown.q[5];
+    arrayr.d[5][9 + j] = lightDown.q[6];
+    arrayr.d[5][13 + j] = lightDown.q[7];
+
+    arrayr.d[8][1 + j] = lightDown.q[8];
+    arrayr.d[8][5 + j] = lightDown.q[9];
+    arrayr.d[8][9 + j] = lightDown.q[10];
+    arrayr.d[8][13 + j] = lightDown.q[11];
+    arrayr.d[9][1 + j] = lightDown.q[8];
+    arrayr.d[9][5 + j] = lightDown.q[9];
+    arrayr.d[9][9 + j] = lightDown.q[10];
+    arrayr.d[9][13 + j] = lightDown.q[11];
+
+    arrayr.d[12][1 + j] = lightDown.q[12];
+    arrayr.d[12][5 + j] = lightDown.q[13];
+    arrayr.d[12][9 + j] = lightDown.q[14];
+    arrayr.d[12][13 + j] = lightDown.q[15];
+    arrayr.d[13][1 + j] = lightDown.q[12];
+    arrayr.d[13][5 + j] = lightDown.q[13];
+    arrayr.d[13][9 + j] = lightDown.q[14];
+    arrayr.d[13][13 + j] = lightDown.q[15];
+   }
+
+   state.STEP2:
+    right_dis.level = stage.q;
+    arrayb.d = right_dis.out;
+    arrayg.d = right_dis.out;
+    arrayr.d = right_dis.out;
+
+    if (counterQ.q >= 24b100000000000000000000000) {
+     lightUp.d[pointer.q] = 0;
+    } else {
+     lightUp.d[pointer.q] = 1;
+    }
+
+   if (up == 1 && pointer.q >= 4) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q - 4;
+   }
+   if (left == 1 && pointer.q != 4b0000 && pointer.q != 4b0100 && pointer.q != 4b1000 && pointer.q != 4b1100) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q - 1;
+   }
+   if (right == 1 && pointer.q != 4b0011 && pointer.q != 4b0111 && pointer.q != 4b1011 && pointer.q != 4b1111) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q + 1;
+   }
+   if (down == 1 && pointer.q < 12) {
+    lightUp.d[pointer.q] = 1;
+    pointer.d = pointer.q + 4;
+   }
+
+   counterQ.d = counterQ.q + 1;
+
+
+   if (yes == 1 && selected.q != pointer.q) {
+    state.d = state.SWAP;
+    lightDown.d[selected.q] = 0;
+    lightUp.d[selected.q] = 1;          
+   }
+        
+   if (no == 1) {
+    selected.d = 0;
+    lightDown.d[pointer.q] = 1;
+    lightUp.d[pointer.q] = 0;
+    state.d = state.STEP1;
+   }
+
+   test.array = number.q;
+   //Output 0....
+   arrayg.d[0][3] = test.out[0];
+   arrayg.d[0][4] = test.out[0];
+   arrayg.d[1][3] = test.out[0];
+   arrayg.d[1][4] = test.out[0];
+
+   //Output 1....
+   arrayg.d[0][7] = test.out[1];
+   arrayg.d[1][7] = test.out[1];
+   arrayg.d[0][8] = test.out[1];
+   arrayg.d[1][8] = test.out[1];
+   //Output 2....
+   arrayg.d[0][11] = test.out[2];
+   arrayg.d[1][11] = test.out[2];
+   arrayg.d[0][12] = test.out[2];
+   arrayg.d[1][12] = test.out[2];
+   //Output 3....
+   arrayg.d[2][1] = test.out[3];
+   arrayg.d[3][1] = test.out[3];
+   arrayg.d[2][2] = test.out[3];
+   arrayg.d[3][2] = test.out[3];
+   //Output 4....
+   arrayg.d[2][5] = test.out[4];
+   arrayg.d[3][5] = test.out[4];
+   arrayg.d[2][6] = test.out[4];
+   arrayg.d[3][6] = test.out[4];
+   //Output 5....
+   arrayg.d[2][9] = test.out[5];
+   arrayg.d[3][9] = test.out[5];
+   arrayg.d[2][10] = test.out[5];
+   arrayg.d[3][10] = test.out[5];
+   //Output 6....
+   arrayg.d[2][13] = test.out[6];
+   arrayg.d[3][13] = test.out[6];
+   arrayg.d[2][14] = test.out[6];
+   arrayg.d[3][14] = test.out[6];
+   //Output 7....
+   arrayg.d[4][3] = test.out[7];
+   arrayg.d[5][3] = test.out[7];
+   arrayg.d[4][4] = test.out[7];
+   arrayg.d[5][4] = test.out[7];
+   //Output 8....
+   arrayg.d[4][7] = test.out[8];
+   arrayg.d[5][7] = test.out[8];
+   arrayg.d[4][8] = test.out[8];
+   arrayg.d[5][8] = test.out[8];
+   //Output 9....
+   arrayg.d[4][11] = test.out[9];
+   arrayg.d[5][11] = test.out[9];
+   arrayg.d[4][12] = test.out[9];
+   arrayg.d[5][12] = test.out[9];
+   //Output 10....
+   arrayg.d[6][1] = test.out[10];
+   arrayg.d[6][2] = test.out[10];
+   arrayg.d[15][1] = test.out[10];
+   arrayg.d[15][2] = test.out[10];
+   //Output 11....
+   arrayg.d[6][5] = test.out[11];
+   arrayg.d[6][6] = test.out[11];
+   arrayg.d[15][5] = test.out[11];
+   arrayg.d[15][6] = test.out[11];
+   //Output 12....
+   arrayg.d[6][9] = test.out[12];
+   arrayg.d[6][10] = test.out[12];
+   arrayg.d[15][9] = test.out[12];
+   arrayg.d[15][10] = test.out[12];
+   //Output 13....
+   arrayg.d[6][13] = test.out[13];
+   arrayg.d[6][14] = test.out[13];
+   arrayg.d[15][13] = test.out[13];
+   arrayg.d[15][14] = test.out[13];
+   //Output 14....
+   arrayg.d[8][3] = test.out[14];
+   arrayg.d[9][3] = test.out[14];
+   arrayg.d[8][4] = test.out[14];
+   arrayg.d[9][4] = test.out[14];
+   //Output 15....
+   arrayg.d[8][7] = test.out[15];
+   arrayg.d[9][7] = test.out[15];
+   arrayg.d[8][8] = test.out[15];
+   arrayg.d[9][8] = test.out[15];
+   //Output 16....
+   arrayg.d[8][11] = test.out[16];
+   arrayg.d[9][11] = test.out[16];
+   arrayg.d[8][12] = test.out[16];
+   arrayg.d[9][12] = test.out[16];
+   //Output 17....
+   arrayg.d[10][1] = test.out[17];
+   arrayg.d[11][1] = test.out[17];
+   arrayg.d[10][2] = test.out[17];
+   arrayg.d[11][2] = test.out[17];
+   //Output 18....
+   arrayg.d[10][5] = test.out[18];
+   arrayg.d[11][5] = test.out[18];
+   arrayg.d[10][6] = test.out[18];
+   arrayg.d[11][6] = test.out[18];
+   //Output 19....
+   arrayg.d[10][9] = test.out[19];
+   arrayg.d[11][9] = test.out[19];
+   arrayg.d[10][10] = test.out[19];
+   arrayg.d[11][10] = test.out[19];
+   //Output 20....
+   arrayg.d[10][13] = test.out[20];
+   arrayg.d[11][13] = test.out[20];
+   arrayg.d[10][14] = test.out[20];
+   arrayg.d[11][14] = test.out[20];
+   //Output 21....
+   arrayg.d[12][3] = test.out[21];
+   arrayg.d[13][3] = test.out[21];
+   arrayg.d[12][4] = test.out[21];
+   arrayg.d[13][4] = test.out[21];
+   //Output 22....
+   arrayg.d[12][7] = test.out[22];
+   arrayg.d[13][7] = test.out[22];
+   arrayg.d[12][8] = test.out[22];
+   arrayg.d[13][8] = test.out[22];
+   //Output 23....
+   arrayg.d[12][11] = test.out[22];
+   arrayg.d[13][11] = test.out[22];
+   arrayg.d[12][12] = test.out[22];
+   arrayg.d[13][12] = test.out[22];
+
+
+   for (i = 0; i < 16; i++) {
+    arrayr.d[7][i] = 1;
+    arrayg.d[7][i] = 1;
+    arrayr.d[14][i] = 1;
+    arrayg.d[14][i] = 1;
+
+    arrayr.d[i][0] = 1;
+    arrayg.d[i][0] = 1;
+
+    arrayr.d[i][15] = 1;
+    arrayg.d[i][15] = 1;
+   }
+
+   for (j = 0; j < 2; j++) {
+    arrayb.d[0][1 + j] = lightUp.q[0];
+    arrayb.d[0][5 + j] = lightUp.q[1];
+    arrayb.d[0][9 + j] = lightUp.q[2];
+    arrayb.d[0][13 + j] = lightUp.q[3];
+    arrayb.d[1][1 + j] = lightUp.q[0];
+    arrayb.d[1][5 + j] = lightUp.q[1];
+    arrayb.d[1][9 + j] = lightUp.q[2];
+    arrayb.d[1][13 + j] = lightUp.q[3];
+
+    arrayb.d[4][1 + j] = lightUp.q[4];
+    arrayb.d[4][5 + j] = lightUp.q[5];
+    arrayb.d[4][9 + j] = lightUp.q[6];
+    arrayb.d[4][13 + j] = lightUp.q[7];
+    arrayb.d[5][1 + j] = lightUp.q[4];
+    arrayb.d[5][5 + j] = lightUp.q[5];
+    arrayb.d[5][9 + j] = lightUp.q[6];
+    arrayb.d[5][13 + j] = lightUp.q[7];
+
+    arrayb.d[8][1 + j] = lightUp.q[8];
+    arrayb.d[8][5 + j] = lightUp.q[9];
+    arrayb.d[8][9 + j] = lightUp.q[10];
+    arrayb.d[8][13 + j] = lightUp.q[11];
+    arrayb.d[9][1 + j] = lightUp.q[8];
+    arrayb.d[9][5 + j] = lightUp.q[9];
+    arrayb.d[9][9 + j] = lightUp.q[10];
+    arrayb.d[9][13 + j] = lightUp.q[11];
+
+    arrayb.d[12][1 + j] = lightUp.q[12];
+    arrayb.d[12][5 + j] = lightUp.q[13];
+    arrayb.d[12][9 + j] = lightUp.q[14];
+    arrayb.d[12][13 + j] = lightUp.q[15];
+    arrayb.d[13][1 + j] = lightUp.q[12];
+    arrayb.d[13][5 + j] = lightUp.q[13];
+    arrayb.d[13][9 + j] = lightUp.q[14];
+    arrayb.d[13][13 + j] = lightUp.q[15];
+
+    arrayr.d[0][1 + j] = lightDown.q[0];
+    arrayr.d[0][5 + j] = lightDown.q[1];
+    arrayr.d[0][9 + j] = lightDown.q[2];
+    arrayr.d[0][13 + j] = lightDown.q[3];
+    arrayr.d[1][1 + j] = lightDown.q[0];
+    arrayr.d[1][5 + j] = lightDown.q[1];
+    arrayr.d[1][9 + j] = lightDown.q[2];
+    arrayr.d[1][13 + j] = lightDown.q[3];
+
+    arrayr.d[4][1 + j] = lightDown.q[4];
+    arrayr.d[4][5 + j] = lightDown.q[5];
+    arrayr.d[4][9 + j] = lightDown.q[6];
+    arrayr.d[4][13 + j] = lightDown.q[7];
+    arrayr.d[5][1 + j] = lightDown.q[4];
+    arrayr.d[5][5 + j] = lightDown.q[5];
+    arrayr.d[5][9 + j] = lightDown.q[6];
+    arrayr.d[5][13 + j] = lightDown.q[7];
+
+    arrayr.d[8][1 + j] = lightDown.q[8];
+    arrayr.d[8][5 + j] = lightDown.q[9];
+    arrayr.d[8][9 + j] = lightDown.q[10];
+    arrayr.d[8][13 + j] = lightDown.q[11];
+    arrayr.d[9][1 + j] = lightDown.q[8];
+    arrayr.d[9][5 + j] = lightDown.q[9];
+    arrayr.d[9][9 + j] = lightDown.q[10];
+    arrayr.d[9][13 + j] = lightDown.q[11];
+
+    arrayr.d[12][1 + j] = lightDown.q[12];
+    arrayr.d[12][5 + j] = lightDown.q[13];
+    arrayr.d[12][9 + j] = lightDown.q[14];
+    arrayr.d[12][13 + j] = lightDown.q[15];
+    arrayr.d[13][1 + j] = lightDown.q[12];
+    arrayr.d[13][5 + j] = lightDown.q[13];
+    arrayr.d[13][9 + j] = lightDown.q[14];
+    arrayr.d[13][13 + j] = lightDown.q[15];
+   }
+
+   state.SWAP:
+     selected.d = 0;
+     number.d = switcher.newNumberArray;
+     state.d = state.CHECK;
+
+   state.CHECK:
+     score.d = score.q - 1;
+     if (test.out == 24hFFFFFF) {
+      state.d = state.FINISH;
+     } else {
+      state.d = state.STEP1;
+     }
+   
+   state.FINISH:
+     if (stage.q == 5) {
+       state.d = state.END;
+     } else {
+       state.d = state.INITIALIZE;
+       init.stage = stage.q + 1;
+       stage.d = stage.q + 1;
+     } 
+   
+   state.END:
+      for (l = 0; l < 16; l++) {
+     arrayb.d[l] = 32h00000000;
+     arrayg.d[l] = 32h00000000;
+     arrayr.d[l] = 32h00000000;
+    }
+        
+   default:
+    for (l = 0; l < 16; l++) {
+     arrayb.d[l] = 32h00000000;
+     arrayg.d[l] = 32h00000000;
+     arrayr.d[l] = 32h00000000;
+    }
+    stage.d = stage.q;   
+  }
+
+  oka.r = arrayr.q;
+  oka.g = arrayg.q;
+  oka.b = arrayb.q;
+
+  lat = oka.lat;
+  oe = oka.oe;
+  r_01 = oka.red1;
+  g_01 = oka.green1;
+  b_01 = oka.blue1;
+
+
+  r_02 = oka.red2;
+  g_02 = oka.green2;
+  b_02 = oka.blue2;
+  a = oka.a_1;
+  b = oka.b_1;
+  c = oka.c_1;
+  led_clk = oka.clock;
+  led = 8h00; // turn LEDs off
+  spi_miso = bz; // not using SPI
+  spi_channel = bzzzz; // not using flags
+  avr_rx = bz; // not using serial port
+ }
+}

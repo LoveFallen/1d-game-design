@@ -1,0 +1,16 @@
+module switcher (
+    input clk,  // clock
+    input rst,  // reset
+    input location1[4],
+    input location2[4],
+    input numberArray[16][4],
+    output newNumberArray[16][4]
+  ) {
+  
+  
+  always {
+    newNumberArray = numberArray;
+    newNumberArray[location1] = numberArray[location2];
+    newNumberArray[location2] = numberArray[location1];
+  }
+}

@@ -1,0 +1,120 @@
+module initialize (
+    input clk,  // clock
+    input rst,  // reset
+    input stage[3],
+    output array[16][4],
+    output score,
+    output out
+  ) {
+
+  sig number[16][4];
+  always {
+    out = 0;
+    score = 0;
+    case(stage){
+      1:
+        number[0] = 4h0;
+        number[1] = 4h3;
+        number[2] = 4h2;
+        number[3] = 4h1;
+        number[4] = 4h4;
+        number[5] = 4h5;
+        number[6] = 4h6;
+        number[7] = 4h7;
+        number[8] = 4h8;
+        number[9] = 4h9;
+        number[10] = 4hA;
+        number[11] = 4hB;
+        number[12] = 4hC;
+        number[13] = 4hD;
+        number[14] = 4hE;
+        number[15] = 4hF;
+      2:
+        number[0] = 4h0;
+        number[1] = 4h1;
+        number[2] = 4h2;
+        number[3] = 4h3;
+        number[4] = 4h4;
+        number[5] = 4h5;
+        number[6] = 4h6;
+        number[7] = 4h7;
+        number[8] = 4h9;
+        number[9] = 4h8;
+        number[10] = 4hA;
+        number[11] = 4hB;
+        number[12] = 4hC;
+        number[13] = 4hD;
+        number[14] = 4hE;
+        number[15] = 4hF;
+      3:
+        number[0] = 4h0;
+        number[1] = 4h1;
+        number[2] = 4h2;
+        number[3] = 4h3;
+        number[4] = 4h4;
+        number[5] = 4h5;
+        number[6] = 4h6;
+        number[7] = 4h8;
+        number[8] = 4h7;
+        number[9] = 4h9;
+        number[10] = 4hA;
+        number[11] = 4hB;
+        number[12] = 4hC;
+        number[13] = 4hD;
+        number[14] = 4hE;
+        number[15] = 4hF;
+      4:
+        number[0] = 4h0;
+        number[1] = 4h1;
+        number[2] = 4h2;
+        number[3] = 4h3;
+        number[4] = 4h4;
+        number[5] = 4h5;
+        number[6] = 4h6;
+        number[7] = 4h7;
+        number[8] = 4h8;
+        number[9] = 4h9;
+        number[10] = 4hA;
+        number[11] = 4hB;
+        number[12] = 4hC;
+        number[13] = 4hD;
+        number[14] = 4hF;
+        number[15] = 4hE;
+      5:
+        number[0] = 4h0;
+        number[1] = 4h1;
+        number[2] = 4h2;
+        number[3] = 4h3;
+        number[4] = 4h4;
+        number[5] = 4h5;
+        number[6] = 4h6;
+        number[7] = 4h7;
+        number[8] = 4hC;
+        number[9] = 4hD;
+        number[10] = 4hE;
+        number[11] = 4hF;
+        number[12] = 4h8;
+        number[13] = 4h9;
+        number[14] = 4hA;
+        number[15] = 4hB;
+      default:
+        number[0] = 4h0;
+        number[1] = 4h1;
+        number[2] = 4h2;
+        number[3] = 4h3;
+        number[4] = 4h4;
+        number[5] = 4h5;
+        number[6] = 4h6;
+        number[7] = 4h7;
+        number[8] = 4h8;
+        number[9] = 4h9;
+        number[10] = 4hA;
+        number[11] = 4hB;
+        number[12] = 4hC;
+        number[13] = 4hD;
+        number[14] = 4hE;
+        number[15] = 4hF;
+    }
+    array = number;
+  }
+}

@@ -1,0 +1,44 @@
+module pushB (
+    input clk,              // 50MHz clock
+    input rst,            // reset button (active low)
+    input buttonU,
+    input buttonD,
+    input buttonL,
+    input buttonR,
+    input buttonY,
+    input buttonN,
+    output up,
+    output down,
+    output right,
+    output left,
+    output yes,
+    output no
+    
+  ) {
+   
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    // reset_conditioner reset_cond;
+    .rst(rst){
+      counter counter;
+    }
+  }
+
+  always {
+    // reset_cond.in = ~rst_n; // input raw inverted reset signal
+    // rst = reset_cond.out;   // conditioned reset
+    counter.buttonU = ~buttonU;
+    up = counter.countUp; // make button active high
+    counter.buttonD = ~buttonD;
+    down = counter.countDown;
+    counter.buttonL = ~buttonL;
+    left = counter.countLeft;
+    counter.buttonR = ~buttonR;
+    right = counter.countRight;
+    counter.buttonY = ~buttonY;
+    yes = counter.countYes;
+    counter.buttonN = ~buttonN;
+    no = counter.countNo;
+  }
+}
