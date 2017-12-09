@@ -18,15 +18,15 @@ module display (
     output b_1
   ) {
 
-  dff columnClk[11](.clk(clk), .rst(rst), #INIT(0));
+  dff columnClk[12](.clk(clk), .rst(rst), #INIT(0));
   sig test[4];
   sig test1[4];
   
   
   always {
-    a_1 = columnClk.q[8];
-    b_1 = columnClk.q[9];
-    c_1 = columnClk.q[10];
+    a_1 = columnClk.q[9];
+    b_1 = columnClk.q[10];
+    c_1 = columnClk.q[11];
     ////latch////
     if (columnClk.q[7:1] == 7b1111111) {
       lat = 1;
@@ -44,22 +44,31 @@ module display (
     else {
       oe = 1;
     }
-    test1[0] = columnClk.q[8];
-    test1[1] = columnClk.q[9];
-    test1[2] = columnClk.q[10];
+    test1[0] = columnClk.q[9];
+    test1[1] = columnClk.q[10];
+    test1[2] = columnClk.q[11];
     test1[3] = 0;
     
-    test[0] = columnClk.q[8];
-    test[1] = columnClk.q[9];
-    test[2] = columnClk.q[10];
+    test[0] = columnClk.q[9];
+    test[1] = columnClk.q[10];
+    test[2] = columnClk.q[11];
     test[3] = 1;
+    
+    if(columnClk.q[8]==1){
+    red1=0;
+    green1=0;
+    blue1=0;
+    red2=0;
+    green2=0;
+    blue2=0;
+    }else{
     red1 = r[test1][columnClk.q[5:1]];
     green1 = g[test1][columnClk.q[5:1]];
     blue1 = b[test1][columnClk.q[5:1]];
     
     red2 = r[test][columnClk.q[5:1]];
     green2 = g[test][columnClk.q[5:1]];
-    blue2 = b[test][columnClk.q[5:1]];
+    blue2 = b[test][columnClk.q[5:1]];}
     
     clock = columnClk.q[0];
     
